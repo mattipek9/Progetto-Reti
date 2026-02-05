@@ -624,6 +624,9 @@ void available_card_u(int i, int porta_utente){
         utenti[i] = ntohl(utenti[i]);
     }
 
+    //piccolo delay per dare il tempo a tutti gli utenti di ricevere available_card
+    usleep(200000);
+
     //invia choose_user a tutti gli utenti
     invia_choose(utenti,num_utenti-1,porta_utente,id_card);
 
