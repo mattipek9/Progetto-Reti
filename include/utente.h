@@ -213,7 +213,7 @@ void gestisci_choose(int i,int porta,fd_set * master, int sockfd)
 
     struct statoAsta * asta_attuale = trova_asta(card_net);
     if(!asta_attuale){
-        printf("Ricevuto un costo per asta della card %d, ma l'asta è già chiusa, ignoro...\n", card_net);
+        printf("Ricevuto un costo per asta della card %d, ma non trovo l'asta, ignoro...\n", card_net);
         return;
     }
 
@@ -590,6 +590,10 @@ void ack_card(int sockfd,int card, int porta_utente){
 //gestisce la ricezione del messaggio AVAILABLE_CARD
 void available_card_u(int i, int porta_utente){
 
+    //DEBUG
+    printf("\n[UTENTE %d] Ricevuto AVAILABLE_CARD - timestamp: %ld\n", porta_utente, time(NULL));
+
+
     int id_card;
     int num_utenti;
 
@@ -604,11 +608,10 @@ void available_card_u(int i, int porta_utente){
         perror("Errore nella ricezione del numero di utenti: ");
         return;
     }
-
     num_utenti = ntohl(num_utenti);
 
     //DEBUG
-    //printf("Sono attualmente presenti %d utenti e la prima card in to_do ha id: %d\n",num_utenti, id_card);
+    printf("[UTENTE %d] Card ID:%d, num_utenti:%d\n", porta_utente, id_card, num_utenti);
 
     
     int utenti[num_utenti-1];
@@ -624,8 +627,17 @@ void available_card_u(int i, int porta_utente){
         utenti[i] = ntohl(utenti[i]);
     }
 
+    //DEBUG
+    printf("[UTENTE %d] Lista peer ricevuta: ", porta_utente);
+    for (int i = 0; i < num_utenti - 1; i++) {
+        printf("%d ", utenti[i]);
+    }
+
     //piccolo delay per dare il tempo a tutti gli utenti di ricevere available_card
-    usleep(200000);
+    usleep(500000);
+
+    //DEBUG
+    printf("[UTENTE %d] Inizio connessioni P2P - timestamp: %ld\n", porta_utente, time(NULL));
 
     //invia choose_user a tutti gli utenti
     invia_choose(utenti,num_utenti-1,porta_utente,id_card);

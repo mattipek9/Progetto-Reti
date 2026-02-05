@@ -611,7 +611,7 @@ void available_card_l(fd_set *master, int fd_max, int listener){
     if(card_in_doing >= n_utenti - 1) return;
 
     //DEBUG
-    //printf("Invio available card dato che valgono le condizioni\n");
+    printf("[LAVAGNA] Invio AVAILABLE_CARD a %d utenti per card ID:%d - timestamp: %ld\n", n_utenti, to_do->id, time(NULL));
 
     struct card * c = to_do;
     
@@ -619,6 +619,11 @@ void available_card_l(fd_set *master, int fd_max, int listener){
 
         if(FD_ISSET(i,master) && i != listener){
             
+            //DEBUG
+            int porta_utente = trova_porta(i,ports);
+            printf("[LAVAGNA] -> Invio a utente %d (fd=%d)\n", porta_utente, i);
+
+
             //invia header
             int ret = invia_comando(i,AVAILABLE_CARD,5678);
             if(ret < 0){
@@ -658,6 +663,9 @@ void available_card_l(fd_set *master, int fd_max, int listener){
             send_user_list(i,to_send);
             free(to_send);
             
+
+            //DEBUG
+            printf("[LAVAGNA] -> Inviato completamente a utente %d\n", porta_utente);
         }
 
     }
