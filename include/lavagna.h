@@ -55,12 +55,14 @@ static void libera_memoria(int sig);
 
 //----funzioni utilità----
 static struct card *has_card(int porta);
+static int card_da_assegnare();
 static void inserisci_card(struct card *card_, struct card **list);
 static void rimuovi_card(int id, struct card **list);
 static int* popola_array(int porta_destinataria);
 struct card* trova_card(int id, struct card *lista);
 static int print_wrapped(const char *str, char out[][COL_WIDTH+1]);
 static void reset_ping(int i);
+
 
 
 //===============================================================================
@@ -462,6 +464,24 @@ void libera_memoria(int sig){
     exit(0);
 }
 
+
+
+int card_da_assegnare(){
+
+    struct card * c = to_do;
+    while(c){
+
+        if(c->colonna == 1){
+            c->colonna = 2;
+            return c->id;
+        }
+        
+        c = c->pun;
+    }
+
+    return -1;
+}
+
 //====================================================================
 // 3. FUNZIONI DEL PROGETTO
 //====================================================================
@@ -607,13 +627,16 @@ void quit_l(int i,bool voluntary,int porta_utente){
 void available_card_l(fd_set *master, int fd_max, int listener){
 
     //controllo condizione per available_card
-    if(n_utenti < 2 || !to_do) return; 
-    if(card_in_doing >= n_utenti - 1) return;
+    if(n_utenti < 2 || card_in_doing >= n_utenti - 1) return; 
+
+    //controllo se ci sono card da assegnare
+    int work_card = card_da_assegnare();
+    if(work_card < 0){
+        return;
+    };
 
     //DEBUG
-    printf("[LAVAGNA] Invio AVAILABLE_CARD a %d utenti per card ID:%d - timestamp: %ld\n", n_utenti, to_do->id, time(NULL));
-
-    struct card * c = to_do;
+    printf("[LAVAGNA] Invio AVAILABLE_CARD a %d utenti per card ID:%d - timestamp: %ld\n", n_utenti, work_card, time(NULL));
     
     for(int i = 0; i <= fd_max; i++){
 
@@ -637,7 +660,7 @@ void available_card_l(fd_set *master, int fd_max, int listener){
             }
 
             //invia l'id della card
-            int id_net = htonl(c->id);
+            int id_net = htonl(work_card);
             if (send(i,&id_net, sizeof(int), 0) == -1) {
                 FD_CLR(i,master);
                 rimuovi_porta(trova_porta(i,ports),&ports);

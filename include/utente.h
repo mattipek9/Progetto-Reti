@@ -2,7 +2,7 @@
 
 #define SERVER_IP "127.0.0.1"          //IP del server, localhost nel nostro caso ovviamente 
 #define WORK_DURATION 30               //Specifica la durata in secondi della simulazione del lavoro 
-#define TIMEOUT_ASTA 30               //Specifica la durata in secondi del timeout, passato il quale l'asta si chiude forzatamente
+#define TIMEOUT_ASTA 15               //Specifica la durata in secondi del timeout, passato il quale l'asta si chiude forzatamente
 
 
 //===============================================================================
@@ -62,7 +62,8 @@ static void aggiungi_asta(struct statoAsta *nuova);
 static struct statoAsta* trova_asta(int carta_id);
 static void rimuovi_asta(int carta_id);
 static void gestisci_choose(int i, int porta, fd_set * master, int sockfd);
-static void invia_choose(int * utenti, int num_utenti, int mia_porta,int card_id);
+static void invia_choose(int * utenti, int num_utenti, int mia_porta,int card_id, int sockfd);
+static void decreta_vincitore(struct statoAsta * asta_attuale, int mia_porta, int sockfd);
 void controlla_timeout_aste(int sockfd, int porta_utente);
 
 
@@ -117,18 +118,43 @@ cleanup:
 
 //invia il messaggio CHOOSE_USER con il costo a tutti gli utenti, le cui porte ci sono state inviate dalla lavagna
 //con available_card_l()
-void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id){
+void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id, int sockfd){
 
+    //genero il costo per l'asta
     int costo = rand();
 
-    //DEBUG
-    //printf("Ho generato il costo per l'asta: %d\n", costo);
+    struct statoAsta* asta = trova_asta(card_id);
 
+    if(asta){
+        //se l'asta è già presente, si tratta di un'asta incompleta creata in precedenza che deve essere 
+        //completata con i dati mancanti forniti dall'available_card
 
-    struct statoAsta *nuova_asta = crea_asta(card_id, num_utenti, mia_porta);
-    nuova_asta->mio_costo = costo;
-    nuova_asta->costo_minore = costo;  
-    aggiungi_asta(nuova_asta);
+        //gestisco pareggio tra il mio costo e quello che avevo ricevuto
+        if(costo <= asta->costo_minore){
+            if(costo == asta->costo_minore && mia_porta < asta->peer_vincente){
+                asta->peer_vincente = mia_porta;
+            }
+            asta->peer_vincente = mia_porta;
+            asta->costo_minore = costo;
+        }
+
+        asta->risposte_attese = num_utenti;
+
+        //se avevo già ricevuto tutti i costi e solo alla fine available_card, termino l'asta
+        if(asta->risposte_attese == asta->risposte_ricevute){
+            decreta_vincitore(asta,mia_porta,sockfd);
+            return;
+        }
+
+    } else {
+        //qua sono nel caso in cui non ho ricevuto alcun costo in precedenza, ed è arrivato prima l'available_card
+        //creo correttamente l'asta
+        struct statoAsta *nuova_asta = crea_asta(card_id, num_utenti, mia_porta);
+        nuova_asta->mio_costo = costo;
+        nuova_asta->costo_minore = costo;  
+        aggiungi_asta(nuova_asta);  
+        
+    }
 
 
     for (int i = 0; i < num_utenti; i++) {
@@ -144,7 +170,6 @@ void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id){
         } else {
             // Se la connessione fallisce, l'utente potrebbe essersi disconnesso durante la connect per l'asta
             printf("Utente disconnesso durante l'asta...\n");
-            nuova_asta->risposte_attese--;
         } 
         
         //Chiudo la connessione TCP 
@@ -200,7 +225,6 @@ void gestisci_choose(int i,int porta,fd_set * master, int sockfd)
         //il peer si è disconnesso 
         goto cleanup_peer;
     }
-
     card_net = ntohl(card_net);
 
     //ricevo il costo del peer
@@ -208,12 +232,26 @@ void gestisci_choose(int i,int porta,fd_set * master, int sockfd)
         //il peer si è disconnesso 
         goto cleanup_peer;
     }
-
     costo_net = ntohl(costo_net);
 
     struct statoAsta * asta_attuale = trova_asta(card_net);
     if(!asta_attuale){
-        printf("Ricevuto un costo per asta della card %d, ma non trovo l'asta, ignoro...\n", card_net);
+        //si tratta di un'asta per una card di cui non mi è acnora arrivato available_card dalla lavagna, creo
+        //un'asta incompleta che si completerà poi
+        struct statoAsta *asta_incompleta = malloc(sizeof(struct statoAsta));
+
+        if (!asta_incompleta) return;
+        
+        asta_incompleta->id_card = card_net;
+        asta_incompleta->peer_vincente = porta_mittente;
+        asta_incompleta->costo_minore= costo_net;
+        asta_incompleta->risposte_ricevute = 1;
+        asta_incompleta->risposte_attese = 0;        
+        asta_incompleta->inizio_asta = time(NULL);
+        asta_incompleta->next = NULL;
+
+        aggiungi_asta(asta_incompleta);
+        
         return;
     }
 
@@ -221,8 +259,6 @@ void gestisci_choose(int i,int porta,fd_set * master, int sockfd)
     
     //gestisco il caso di pareggio di costi, selezionando il peer con porta minore
     if(costo_net == asta_attuale->costo_minore){
-        //DEBUG
-        //printf("Entro qua, peer vincente: %d, porta mittente %d\n",asta_attuale->peer_vincente,porta_mittente);
         if(asta_attuale->peer_vincente > porta_mittente){ 
             asta_attuale->peer_vincente = porta_mittente;
         }
@@ -231,27 +267,8 @@ void gestisci_choose(int i,int porta,fd_set * master, int sockfd)
         asta_attuale->costo_minore = costo_net;
     } 
 
-    if(asta_attuale->risposte_attese == asta_attuale->risposte_ricevute){
-
-        //Termine asta
-        asta_attuale->risposte_attese = 0;
-        asta_attuale->risposte_ricevute = 0;
-        
-        //invio ack_card alla lavagna se sono il vincitore
-        if(asta_attuale->peer_vincente == porta){
-
-            //DEBUG
-            printf("Ho vinto l'asta e mi occuperò della card %d\n", asta_attuale->id_card);
-
-            ack_card(sockfd,asta_attuale->id_card,porta);
-
-            //inizio a lavorare sulla card
-            avvia_lavoro_su_card(asta_attuale->id_card); 
-        }
-
-        rimuovi_asta(card_net);
-    }
-    
+    //decreto eventuale vincitore
+    decreta_vincitore(asta_attuale,porta,sockfd);
     return;
 
 cleanup_peer: 
@@ -260,6 +277,28 @@ cleanup_peer:
     FD_CLR(i,master);
     return;
 }
+
+//decreta il vincitore di un'asta in caso ci siano le condizioni per farlo e invia ACK alla lavagna
+void decreta_vincitore(struct statoAsta * asta_attuale, int mia_porta, int sockfd){
+
+    if(asta_attuale->risposte_attese == asta_attuale->risposte_ricevute){
+        
+        //invio ack_card alla lavagna se sono il vincitore
+        if(asta_attuale->peer_vincente == mia_porta){
+
+            //DEBUG
+            printf("Ho vinto l'asta e mi occuperò della card %d\n", asta_attuale->id_card);
+
+            ack_card(sockfd,asta_attuale->id_card,mia_porta);
+
+            //inizio a lavorare sulla card
+            avvia_lavoro_su_card(asta_attuale->id_card); 
+        }
+
+        rimuovi_asta(asta_attuale->id_card);
+    }
+}
+
 
 //legge il comando digitato dall'utente e chiama la funzione opportuna per inviare il comando alla lavagna
 void leggi_e_invia_comando_utente(int sockfd,int porta_utente) {
@@ -640,7 +679,7 @@ void available_card_u(int i, int porta_utente){
     printf("[UTENTE %d] Inizio connessioni P2P - timestamp: %ld\n", porta_utente, time(NULL));
 
     //invia choose_user a tutti gli utenti
-    invia_choose(utenti,num_utenti-1,porta_utente,id_card);
+    invia_choose(utenti,num_utenti-1,porta_utente,id_card,i);
 
 }
 
@@ -661,9 +700,6 @@ void choose_user(int sockfd,int costo,int carta_id){
         perror("Errore nell'invio del costo: ");
         exit(1);
     }
-    
-    //DEBUG
-    //printf("Inviato il costo al peer\n");
 
 }
 
