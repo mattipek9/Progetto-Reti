@@ -143,7 +143,7 @@ void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id){
 
         } else {
             // Se la connessione fallisce, l'utente potrebbe essersi disconnesso durante la connect per l'asta
-            printf("Utente disconnesso durante l'asta...");
+            printf("Utente disconnesso durante l'asta...\n");
             nuova_asta->risposte_attese--;
         } 
         

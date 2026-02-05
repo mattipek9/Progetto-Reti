@@ -145,8 +145,8 @@ int main(int argc, char * argv[]){
             continue;
         }
 
-        if(activity == 0)
-            controlla_timeout_aste(sockfd,porta_utente);
+        //if(activity == 0)
+        controlla_timeout_aste(sockfd,porta_utente);
             
         
 
