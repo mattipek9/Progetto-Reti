@@ -672,8 +672,6 @@ void available_card_u(int i, int porta_utente){
         printf("%d ", utenti[i]);
     }
 
-    //piccolo delay per dare il tempo a tutti gli utenti di ricevere available_card
-    usleep(500000);
 
     //DEBUG
     printf("[UTENTE %d] Inizio connessioni P2P - timestamp: %ld\n", porta_utente, time(NULL));
