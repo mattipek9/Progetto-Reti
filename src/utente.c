@@ -72,6 +72,8 @@ int main(int argc, char * argv[]){
     printf("Registrato alla lavagna\n");
 
 
+    
+
     // =========================================================================
     // 2. Configurazione per l'ascolto di altri Utenti (Utente verso altri utenti)
     // =========================================================================
@@ -103,6 +105,12 @@ int main(int argc, char * argv[]){
 
     printf("Utente in ascolto per altri Utenti sulla porta %d...\n", porta_utente);
     
+
+    //stampa dei comandi disponibili
+    printf("\nComandi disponibili:\n"
+                "SHOW_LAVAGNA --> per visualizzare lo stato della lavagna\n"
+                "CREATE_CARD <descrizione> --> per creare una card\n"
+                "QUIT --> per uscire\n");
 
     // =========================================================================
     // 3. Loop principale con I/O Multiplexing

@@ -625,7 +625,6 @@ void ack_card(int sockfd,int card, int porta_utente){
 }
 
 
-
 //gestisce la ricezione del messaggio AVAILABLE_CARD
 void available_card_u(int i, int porta_utente){
 

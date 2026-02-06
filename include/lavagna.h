@@ -464,8 +464,10 @@ void libera_memoria(int sig){
     exit(0);
 }
 
-
-
+//Trova la card per cui mandare available_card. Bisogna fare attenzione al fatto che tra quando la lavagna invia available_card
+//e quando la card viene effettivamente spostata in doing passa del tempo, durante il quale potrebbe essere richiamata 
+//la funzione available_card. Per tale motivo la carta da assegnare viene spostata "logicamente" in doing per evitare di reinviare
+//la stessa card
 int card_da_assegnare(){
 
     struct card * c = to_do;
