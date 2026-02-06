@@ -2,7 +2,7 @@
 
 #define SERVER_IP "127.0.0.1"          //IP del server, localhost nel nostro caso ovviamente 
 #define WORK_DURATION 30               //Specifica la durata in secondi della simulazione del lavoro 
-#define TIMEOUT_ASTA 15               //Specifica la durata in secondi del timeout, passato il quale l'asta si chiude forzatamente
+#define TIMEOUT_ASTA 15                //Specifica la durata in secondi del timeout, passato il quale l'asta si chiude forzatamente
 
 
 //===============================================================================
@@ -15,7 +15,6 @@ struct port * ports_u;
 //struttura dati per gestire le aste
 struct statoAsta{ 
     int id_card;                      //Id della carta in asta
-    int mio_costo;                    //Costo generato dal peer
     int costo_minore;                 //Costo minore generato per la card (da me o da altri peer)
     int peer_vincente;                //Porta del peer vincente
     int risposte_ricevute;            //Numero di costi ricevuti
@@ -61,10 +60,12 @@ static struct statoAsta* crea_asta(int carta_id, int num_utenti, int mia_porta);
 static void aggiungi_asta(struct statoAsta *nuova);
 static struct statoAsta* trova_asta(int carta_id);
 static void rimuovi_asta(int carta_id);
+void controlla_timeout_aste(int sockfd, int porta_utente);
+
+//----funzioni per gestire i costi inviati/ricevuti durante l'asta----
 static void gestisci_choose(int i, int porta, fd_set * master, int sockfd);
 static void invia_choose(int * utenti, int num_utenti, int mia_porta,int card_id, int sockfd);
 static void decreta_vincitore(struct statoAsta * asta_attuale, int mia_porta, int sockfd);
-void controlla_timeout_aste(int sockfd, int porta_utente);
 
 
 //===============================================================================
@@ -150,7 +151,6 @@ void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id, int soc
         //qua sono nel caso in cui non ho ricevuto alcun costo in precedenza, ed è arrivato prima l'available_card
         //creo correttamente l'asta
         struct statoAsta *nuova_asta = crea_asta(card_id, num_utenti, mia_porta);
-        nuova_asta->mio_costo = costo;
         nuova_asta->costo_minore = costo;  
         aggiungi_asta(nuova_asta);  
         
@@ -185,11 +185,11 @@ void *worker_thread(void *arg) {
 
     int carta = *(int*)arg;
 
-    printf("Inizio lavoro sulla card...\n");
+    printf("Inizio lavoro sulla card %d...\n", carta);
 
     sleep(WORK_DURATION);   // simula lavoro
 
-    printf("Finito lavoro sulla card!\n");
+    printf("Finito lavoro sulla card %d!\n", carta);
 
     //notifica al thread principale 
     write(pipefd[1], &carta, sizeof(int));
@@ -335,6 +335,7 @@ void leggi_e_invia_comando_utente(int sockfd,int porta_utente) {
                 printf("Errore invio quit\n");
                 exit(1);
             }
+
             clean_utente();
             exit(0);
         break;
@@ -628,10 +629,6 @@ void ack_card(int sockfd,int card, int porta_utente){
 //gestisce la ricezione del messaggio AVAILABLE_CARD
 void available_card_u(int i, int porta_utente){
 
-    //DEBUG
-    printf("\n[UTENTE %d] Ricevuto AVAILABLE_CARD - timestamp: %ld\n", porta_utente, time(NULL));
-
-
     int id_card;
     int num_utenti;
 
@@ -648,10 +645,7 @@ void available_card_u(int i, int porta_utente){
     }
     num_utenti = ntohl(num_utenti);
 
-    //DEBUG
-    printf("[UTENTE %d] Card ID:%d, num_utenti:%d\n", porta_utente, id_card, num_utenti);
-
-    
+   
     int utenti[num_utenti-1];
     int size = (num_utenti-1) * sizeof(int);
 
@@ -664,16 +658,6 @@ void available_card_u(int i, int porta_utente){
     for (int i = 0; i < num_utenti - 1; i++) {
         utenti[i] = ntohl(utenti[i]);
     }
-
-    //DEBUG
-    printf("[UTENTE %d] Lista peer ricevuta: ", porta_utente);
-    for (int i = 0; i < num_utenti - 1; i++) {
-        printf("%d ", utenti[i]);
-    }
-
-
-    //DEBUG
-    printf("[UTENTE %d] Inizio connessioni P2P - timestamp: %ld\n", porta_utente, time(NULL));
 
     //invia choose_user a tutti gli utenti
     invia_choose(utenti,num_utenti-1,porta_utente,id_card,i);

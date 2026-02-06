@@ -170,7 +170,7 @@ void inizializza_lavagna(){
     ports = NULL;
     card_in_doing = 0;
     card_totali = NUM_CARD_INIZIALI;
-    id_next = ID_CARD_INIZIALE; //inizializzo a 11 perchè inserisco 10 card di default nella lavagna
+    id_next = ID_CARD_INIZIALE; 
 }
 
 //invia la lista delle porte degli utenti "User" ad un singolo utente con descrittore i
@@ -192,7 +192,7 @@ void send_user_list(int i,int user[]){
 }
 
 
-//funzione che stampa una stringa in blocchi di COL_WIDTH caratteri
+//Funzione che stampa una stringa in blocchi di COL_WIDTH caratteri
 //restituisce quanti "blocchi" sono stati stampati (quante righe)
 int print_wrapped(const char *str, char out[][COL_WIDTH+1]) {
     int len = strlen(str);
@@ -637,24 +637,15 @@ void available_card_l(fd_set *master, int fd_max, int listener){
         return;
     };
 
-    //DEBUG
-    printf("[LAVAGNA] Invio AVAILABLE_CARD a %d utenti per card ID:%d - timestamp: %ld\n", n_utenti, work_card, time(NULL));
-    
     for(int i = 0; i <= fd_max; i++){
 
         if(FD_ISSET(i,master) && i != listener){
             
-            //DEBUG
-            int porta_utente = trova_porta(i,ports);
-            printf("[LAVAGNA] -> Invio a utente %d (fd=%d)\n", porta_utente, i);
-
-
+           
             //invia header
             int ret = invia_comando(i,AVAILABLE_CARD,5678);
             if(ret < 0){
                 //la gestione dell'errore è questa e si completa poi nella send ping
-                //qua levo il socket dal pool master e abbasso il numero di utenti per far svolgere correttamente l'asta 
-                //in maniera tale che gli altri peer sappiano che un utente si è disconnesso inaspettatamente
                 FD_CLR(i,master);
                 rimuovi_porta(trova_porta(i,ports),&ports);
                 n_utenti--;
@@ -688,9 +679,6 @@ void available_card_l(fd_set *master, int fd_max, int listener){
             send_user_list(i,to_send);
             free(to_send);
             
-
-            //DEBUG
-            printf("[LAVAGNA] -> Inviato completamente a utente %d\n", porta_utente);
         }
 
     }

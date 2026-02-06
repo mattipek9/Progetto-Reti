@@ -72,8 +72,6 @@ int main(int argc, char * argv[]){
     printf("Registrato alla lavagna\n");
 
 
-    
-
     // =========================================================================
     // 2. Configurazione per l'ascolto di altri Utenti (Utente verso altri utenti)
     // =========================================================================
@@ -106,11 +104,11 @@ int main(int argc, char * argv[]){
     printf("Utente in ascolto per altri Utenti sulla porta %d...\n", porta_utente);
     
 
-    //stampa dei comandi disponibili
+    //Stampa dei comandi disponibili lato utente
     printf("\nComandi disponibili:\n"
                 "SHOW_LAVAGNA --> per visualizzare lo stato della lavagna\n"
                 "CREATE_CARD <descrizione> --> per creare una card\n"
-                "QUIT --> per uscire\n");
+                "QUIT --> per uscire\n\n");
 
     // =========================================================================
     // 3. Loop principale con I/O Multiplexing
@@ -153,6 +151,7 @@ int main(int argc, char * argv[]){
             continue;
         }
 
+        //controllo eventuali aste non concluse correttamente, decretando il vincitore tra i costi che mi sono arrivati
         controlla_timeout_aste(sockfd,porta_utente);
             
         
@@ -174,6 +173,7 @@ int main(int argc, char * argv[]){
                     if (p2p_fd == -1) {
                         perror("Errore nella accept P2P: ");
                     } else {
+
                         //mi salvo la porta del peer, mi serve per l'asta
                         int porta_peer;
                         if(recv(p2p_fd, &porta_peer, sizeof(int), 0) <= 0){

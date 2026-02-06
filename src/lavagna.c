@@ -106,7 +106,7 @@ int main(){
                     //Ricevo tutto l'header del messaggio
                     ssize_t bytes_read = recv(i,&head,sizeof(struct header),MSG_WAITALL);
                     
-                    //ricevuto header incompleto a causa di ctrl+c del client
+                    //possibile ricezione di header incompleto a causa di ctrl+c del client
                     if(bytes_read > 0 && bytes_read < (ssize_t)sizeof(struct header)){
                         printf("Ricevuto header incompleto da %d, lo ignoro...\n", i);
                         continue;
