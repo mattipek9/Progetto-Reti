@@ -512,7 +512,7 @@ void controlla_timeout_aste(int sockfd, int porta_utente) {
 
     while (curr) {
 
-        //Se l'asta è aperta da più di 30 secondi
+        //Se l'asta è aperta da più di TIMEOUT_ASTA determino peer vincente
         if (ora - curr->inizio_asta >= TIMEOUT_ASTA) {
             printf("Timeout asta per card %d...\n", curr->id_card);
             

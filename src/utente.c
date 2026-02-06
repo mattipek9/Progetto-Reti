@@ -63,14 +63,7 @@ int main(int argc, char * argv[]){
         exit(1);
     }
 
-    //Registrazione alla lavagna
-    if(invia_comando(sockfd,HELLO,porta_utente) < 0){
-        printf("Errore hello utente\n");
-        exit(1);
-    };
-
     printf("Registrato alla lavagna\n");
-
 
     // =========================================================================
     // 2. Configurazione per l'ascolto di altri Utenti (Utente verso altri utenti)
@@ -103,6 +96,13 @@ int main(int argc, char * argv[]){
 
     printf("Utente in ascolto per altri Utenti sulla porta %d...\n", porta_utente);
     
+
+    //Registrazione alla lavagna con invio di HELLO
+    if(invia_comando(sockfd,HELLO,porta_utente) < 0){
+        printf("Errore hello utente\n");
+        exit(1);
+    };
+
 
     //Stampa dei comandi disponibili lato utente
     printf("\nComandi disponibili:\n"
