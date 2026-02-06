@@ -130,22 +130,17 @@ void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id, int soc
         //se l'asta è già presente, si tratta di un'asta incompleta creata in precedenza che deve essere 
         //completata con i dati mancanti forniti dall'available_card
 
-        //gestisco pareggio tra il mio costo e quello che avevo ricevuto
-        if(costo <= asta->costo_minore){
-            if(costo == asta->costo_minore && mia_porta < asta->peer_vincente){
+         //gestisco pareggio tra il mio costo e quello che avevo ricevuto
+        if(costo == asta->costo_minore){
+            if(asta->peer_vincente > mia_porta){ 
                 asta->peer_vincente = mia_porta;
             }
+        } else if(costo < asta->costo_minore) {
             asta->peer_vincente = mia_porta;
             asta->costo_minore = costo;
-        }
+        } 
 
         asta->risposte_attese = num_utenti;
-
-        //se avevo già ricevuto tutti i costi e solo alla fine available_card, termino l'asta
-        if(asta->risposte_attese == asta->risposte_ricevute){
-            decreta_vincitore(asta,mia_porta,sockfd);
-            return;
-        }
 
     } else {
         //qua sono nel caso in cui non ho ricevuto alcun costo in precedenza, ed è arrivato prima l'available_card
@@ -174,6 +169,12 @@ void invia_choose(int * utenti,int num_utenti,int mia_porta,int card_id, int soc
         
         //Chiudo la connessione TCP 
         close(p2p_socket); 
+    }
+
+    //se avevo già ricevuto tutti i costi e solo alla fine available_card, termino l'asta
+    if(asta){
+         decreta_vincitore(asta,mia_porta,sockfd);
+         return;
     }
 
 }
