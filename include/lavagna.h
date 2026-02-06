@@ -598,6 +598,7 @@ void quit_l(int i,bool voluntary,int porta_utente){
         //rimuovo tutte le card che l'utente aveva in doing e le rimetto in to_do
         while(c){
             rimuovi_card(c->id,&doing);
+            c->colonna = 1;
             inserisci_card(c,&to_do);
             card_in_doing--;
 
