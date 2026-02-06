@@ -153,11 +153,9 @@ int main(int argc, char * argv[]){
             continue;
         }
 
-        //if(activity == 0)
         controlla_timeout_aste(sockfd,porta_utente);
             
         
-
         // Scorro tutti i descrittori per vedere chi è pronto
         for (int i = 0; i <= fdmax; i++) {
             if (FD_ISSET(i, &read_fds)) {
