@@ -344,7 +344,7 @@ void leggi_e_invia_comando_utente(int sockfd,int porta_utente) {
         case CREATE_CARD:
 
             if(n < 2){
-                printf("Il formato è CREATE_CARD <descrizione>\n");
+                printf("Il formato è CREATE_CARD <descrizione 100 caratteri max>\n");
             } else {
                 create_card_u(sockfd,porta_utente,descrizione);
             }
