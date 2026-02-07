@@ -107,7 +107,7 @@ int main(int argc, char * argv[]){
     //Stampa dei comandi disponibili lato utente
     printf("\nComandi disponibili:\n"
                 "SHOW_LAVAGNA --> per visualizzare lo stato della lavagna\n"
-                "CREATE_CARD <descrizione> --> per creare una card\n"
+                "CREATE_CARD <descrizione 100 caratteri max> --> per creare una card\n"
                 "QUIT --> per uscire\n\n");
 
     // =========================================================================
