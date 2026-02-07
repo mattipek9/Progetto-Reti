@@ -518,7 +518,6 @@ void controlla_timeout_aste(int sockfd, int porta_utente) {
             printf("Timeout asta per card %d...\n", curr->id_card);
             
             if (curr->peer_vincente == porta_utente) {
-                printf("Ho vinto per timeout la card %d\n", curr->id_card);
                 ack_card(sockfd,curr->id_card,porta_utente);
                 avvia_lavoro_su_card(curr->id_card);
             }
